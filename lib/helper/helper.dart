@@ -6,8 +6,8 @@ class DatabaseHelper {
 
   DatabaseHelper._();
 
-  static String databaseName = 'finance.db';
-  static String tableName = 'finance';
+  static const String databaseName = 'finance.db';
+  static const String tableName = 'finance';
 
   Database? _database;
 
@@ -16,27 +16,31 @@ class DatabaseHelper {
   Future<Database?> initDatabase() async {
     final path = await getDatabasesPath();
     final dbPath = join(path, databaseName);
-
-    return await openDatabase(dbPath, version: 1, onCreate: (db, version) {
-      String sql = '''
-          CREATE TABLE $tableName(
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          amount REAL NOT NULL,
-          isIncome INTEGER NOT NULL,
-          category TEXT 
-          )
-          ''';
-      db.execute(sql);
-    });
+    return await openDatabase(
+      dbPath,
+      version: 1,
+      onCreate: (db, version) {
+        String sql = '''
+        CREATE TABLE $tableName (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        amount REAL NOT NULL,
+        isIncome INTEGER NOT NULL,
+        category TEXT,
+        img TEXT
+        )
+        ''';
+        db.execute(sql);
+      },
+    );
   }
 
-  Future<int> insertData(double amount, int isIncome, String category) async {
+  Future<int> insertData(double amount, int isIncome, String category, String img) async {
     final db = await database;
     String sql = '''
-    INSERT INTO $tableName (amount, isIncome, category)
-    VALUES (?,?,?);
+    INSERT INTO $tableName (amount, isIncome, category, img)
+    VALUES (?,?,?,?);
     ''';
-    List args = [amount, isIncome, category];
+    List args = [amount, isIncome, category, img];
     return await db!.rawInsert(sql, args);
   }
 
@@ -48,13 +52,30 @@ class DatabaseHelper {
     return await db!.rawQuery(sql);
   }
 
-  Future<int> updateData(
-      int id, double amount, int isIncome, String category) async {
+  Future<List<Map<String, Object?>>> readDataBySearch(String search) async {
     final db = await database;
     String sql = '''
-    UPDATE $tableName SET amount = ?, isIncome = ?, category = ? WHERE id = ?
+    SELECT * FROM $tableName WHERE category LIKE '$search%'
     ''';
-    List args = [amount, isIncome, category, id];
+    return await db!.rawQuery(sql);
+  }
+
+  Future<List<Map<String, Object?>>> readCategoryData(int isIncome) async {
+    final db = await database;
+    String sql = '''
+    SELECT * FROM $tableName WHERE isIncome = ?
+    ''';
+    List args = [isIncome];
+    return await db!.rawQuery(sql, args);
+  }
+
+  Future<int> updateData(
+      int id, double amount, int isIncome, String category, String img) async {
+    final db = await database;
+    String sql = '''
+    UPDATE $tableName SET amount = ?, isIncome = ?, category = ?, img = ? WHERE id = ?
+    ''';
+    List args = [amount, isIncome, category, img, id];
     return await db!.rawUpdate(sql, args);
   }
 
