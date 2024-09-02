@@ -1,9 +1,11 @@
-import 'package:database_daily_task/controller/controller.dart';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
+import '../Utils/global.dart';
 
-class HomePage extends StatelessWidget {
-  const HomePage({super.key});
+class HomeScreen extends StatelessWidget {
+  const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -12,7 +14,8 @@ class HomePage extends StatelessWidget {
         centerTitle: true,
         title: const Text(
           'Budget Tracker',
-          style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+          style: TextStyle(
+              color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.blueGrey,
         leading: IconButton(
@@ -31,228 +34,379 @@ class HomePage extends StatelessWidget {
         ],
       ),
       body: Obx(
-            () => Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  Text(
-                    controller.totalIncome != 0.0.obs
-                        ? 'Total Income: ${controller.totalIncome}'
-                        : '',
-                    style: const TextStyle(color: Colors.green, fontSize: 15, fontWeight: FontWeight.w600),
+        () => Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(top: 10, left: 10, right: 10),
+                child: TextField(
+                  cursorColor: Colors.black,
+                  decoration: InputDecoration(
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(
+                        width: 1,
+                        color: Colors.grey,
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(
+                        width: 2,
+                        color: Colors.grey,
+                      ),
+                    ),
+                    hintText: 'Search',
                   ),
-                  Text(
-                    controller.totalExpense != 0.0.obs
-                        ? 'Total Expense: ${controller.totalExpense}'
-                        : '',
-                    style: const TextStyle(color: Colors.red, fontSize: 15, fontWeight: FontWeight.w600),
+                  onChanged: (value) {
+                    controller.getRecordsBySearch(value);
+                  },
+                ),
+              ),
+              const SizedBox(
+                height: 20,
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  GestureDetector(
+                    onTap: () {
+                      controller.getCategoryRecord(1);
+                    },
+                    child: Container(
+                        height: 60,
+                        width: 90,
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.green,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Column(
+                          children: [
+                            Text(
+                              'Income',
+                              style: const TextStyle(color: Colors.white),
+                            ),
+                            Text(
+                              '${controller.totalIncome}',
+                              style: const TextStyle(color: Colors.white),
+                            ),
+                          ],
+                        )),
+                  ),
+                  GestureDetector(
+                    onTap: () {
+                      controller.getCategoryRecord(0);
+                    },
+                    child: Container(
+                        height: 60,
+                        width: 90,
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.red.shade400,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Column(
+                          children: [
+                            const Text(
+                              'Expense',
+                              style: TextStyle(color: Colors.white),
+                            ),
+                            Text(
+                              '${controller.totalExpense}',
+                              style: const TextStyle(color: Colors.white),
+                            ),
+                          ],
+                        )),
+                  ),
+                  GestureDetector(
+                    onTap: () {
+                      controller.getRecords();
+                    },
+                    child: Container(
+                      height: 60,
+                      width: 90,
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.blue,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Column(
+                        children: [
+                          const Text(
+                            'Total',
+                            style: TextStyle(color: Colors.white, fontSize: 14),
+                          ),
+                          Text(
+                            '${controller.totalIncome.value - controller.totalExpense.value}',
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ],
               ),
-            ),
-            Expanded(
-              child: ListView.builder(
-                itemCount: controller.data.length,
-                itemBuilder: (context, index) => Card(
-                  color: controller.data[index]['isIncome'] == 1
-                      ? Colors.green[100]
-                      : Colors.red[100],
-                  child: ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: Colors.blueGrey,
-                      child: Text(
-                        '${index + 1}',
-                        style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500),
+              const SizedBox(
+                height: 10,
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(5),
+                  child: ListView.builder(
+                    itemCount: controller.data.length,
+                    itemBuilder: (context, index) => Card(
+                      color: controller.data[index]['isIncome'] == 1
+                          ? Colors.green[200]
+                          : Colors.red[200],
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          backgroundImage:
+                              FileImage(File(controller.data[index]['img'])),
+                        ),
+                        title:
+                            Text(controller.data[index]['amount'].toString()),
+                        subtitle: Text(controller.data[index]['category']),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              onPressed: () {
+                                showDialog(
+                                  context: context,
+                                  builder: (context) => AlertDialog(
+                                    title: const Text('Update details'),
+                                    content: Form(
+                                      key: formKey,
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          GestureDetector(
+                                            onTap: () async {
+                                              ImagePicker imagePicker =
+                                                  ImagePicker();
+                                              controller.xFileImage.value =
+                                                  (await imagePicker.pickImage(
+                                                      source:
+                                                          ImageSource.gallery));
+                                              controller.pickImage();
+                                            },
+                                            child: Obx(
+                                              () => CircleAvatar(
+                                                radius: 30,
+                                                backgroundImage: controller
+                                                            .fileImage.value !=
+                                                        null
+                                                    ? FileImage(
+                                                        File(controller
+                                                            .fileImage
+                                                            .value!
+                                                            .path),
+                                                      )
+                                                    : null,
+                                                child: controller
+                                                            .fileImage.value ==
+                                                        null
+                                                    ? const Icon(
+                                                        Icons.add_a_photo)
+                                                    : null,
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(
+                                            height: 10,
+                                          ),
+                                          buildTextFormField(
+                                            label: 'Amount',
+                                            controller: controller.txtAmount,
+                                          ),
+                                          const SizedBox(
+                                            height: 10,
+                                          ),
+                                          buildTextFormField(
+                                            label: 'Category',
+                                            controller: controller.txtCategory,
+                                          ),
+                                          Obx(
+                                            () => SwitchListTile(
+                                              activeTrackColor: Colors.green,
+                                              title: const Text('Income'),
+                                              value: controller.isIncome.value,
+                                              onChanged: (value) {
+                                                controller.setIsIncome(value);
+                                              },
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () {
+                                          Get.back();
+                                        },
+                                        child: const Text(
+                                          'Cancel',
+                                          style: TextStyle(color: Colors.black),
+                                        ),
+                                      ),
+                                      TextButton(
+                                        onPressed: () {
+                                          String img =
+                                              controller.fileImage.value!.path;
+                                          bool response =
+                                              formKey.currentState!.validate();
+                                          if (response) {
+                                            controller.updateRecord(
+                                              controller.data[index]['id'],
+                                              double.parse(
+                                                  controller.txtAmount.text),
+                                              controller.isIncome.value ? 1 : 0,
+                                              controller.txtCategory.text,
+                                              img,
+                                            );
+                                          }
+                                          controller.txtAmount.clear();
+                                          controller.txtCategory.clear();
+                                          controller.isIncome.value = false;
+                                          controller.fileImage =
+                                              Rx<File?>(null);
+                                          Get.back();
+                                        },
+                                        child: const Text(
+                                          'OK',
+                                          style: TextStyle(color: Colors.black),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                              icon: const Icon(
+                                Icons.edit,
+                                color: Colors.black,
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: () {
+                                controller
+                                    .deleteRecord(controller.data[index]['id']);
+                              },
+                              icon: Icon(
+                                Icons.delete,
+                                color: Colors.red[900],
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    title: Text(
-                      controller.data[index]['amount'].toString(),
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-                    ),
-                    subtitle: Text(
-                      controller.data[index]['category'],
-                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w400, color: Colors.black54),
-                    ),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          onPressed: () {
-                            _showUpdateDialog(context, index);
-                          },
-                          icon: const Icon(
-                            Icons.edit,
-                            color: Colors.blueGrey,
-                          ),
-                        ),
-                        IconButton(
-                          onPressed: () {
-                            controller.deleteRecord(controller.data[index]['id']);
-                          },
-                          icon: Icon(
-                            Icons.delete,
-                            color: Colors.red[900],
-                          ),
-                        ),
-                      ],
                     ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          _showAddDialog(context);
-        },
         backgroundColor: Colors.blueGrey,
+        onPressed: () {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('Add details'),
+              content: Form(
+                key: formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    GestureDetector(
+                      onTap: () async {
+                        ImagePicker imagePicker = ImagePicker();
+                        controller.xFileImage.value = (await imagePicker
+                            .pickImage(source: ImageSource.gallery));
+                        controller.pickImage();
+                      },
+                      child: Obx(
+                        () => CircleAvatar(
+                          radius: 30,
+                          backgroundImage: controller.fileImage.value != null
+                              ? FileImage(
+                                  File(controller.fileImage.value!.path),
+                                )
+                              : null,
+                          child: controller.fileImage.value == null
+                              ? const Icon(Icons.add_a_photo)
+                              : null,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(
+                      height: 10,
+                    ),
+                    buildTextFormField(
+                      label: 'Amount',
+                      controller: controller.txtAmount,
+                    ),
+                    const SizedBox(
+                      height: 10,
+                    ),
+                    buildTextFormField(
+                      label: 'Category',
+                      controller: controller.txtCategory,
+                    ),
+                    Obx(
+                      () => SwitchListTile(
+                        activeTrackColor: Colors.green,
+                        title: const Text('Income'),
+                        value: controller.isIncome.value,
+                        onChanged: (value) {
+                          controller.setIsIncome(value);
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Get.back();
+                  },
+                  child: const Text(
+                    'Cancel',
+                    style: TextStyle(color: Colors.black),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () {
+                    String img = controller.fileImage.value!.path;
+                    bool response = formKey.currentState!.validate();
+                    if (response) {
+                      controller.initRecord(
+                        double.parse(controller.txtAmount.text),
+                        controller.isIncome.value ? 1 : 0,
+                        controller.txtCategory.text,
+                        img,
+                      );
+                    }
+                    Get.back();
+                    controller.txtAmount.clear();
+                    controller.txtCategory.clear();
+                    controller.isIncome.value = false;
+                    controller.fileImage = Rx<File?>(null);
+                  },
+                  child: const Text(
+                    'OK',
+                    style: TextStyle(color: Colors.black),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
         child: const Icon(Icons.add, color: Colors.white),
-      ),
-    );
-  }
-
-  void _showUpdateDialog(BuildContext context, int index) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text(
-          'Update details',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-        ),
-        content: Form(
-          key: formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              buildTextFormField(
-                label: 'Amount',
-                controller: controller.txtAmount,
-              ),
-              const SizedBox(height: 10),
-              buildTextFormField(
-                label: 'Category',
-                controller: controller.txtCategory,
-              ),
-              Obx(
-                    () => SwitchListTile(
-                  activeTrackColor: Colors.green,
-                  title: const Text('Income', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
-                  value: controller.isIncome.value,
-                  onChanged: (value) {
-                    controller.setIsIncome(value);
-                  },
-                ),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Get.back();
-            },
-            child: const Text(
-              'Cancel',
-              style: TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.w500),
-            ),
-          ),
-          TextButton(
-            onPressed: () {
-              bool response = formKey.currentState!.validate();
-              if (response) {
-                controller.updateRecord(
-                  controller.data[index]['id'],
-                  double.parse(controller.txtAmount.text),
-                  controller.isIncome.value ? 1 : 0,
-                  controller.txtCategory.text,
-                );
-              }
-              Get.back();
-              controller.txtAmount.clear();
-              controller.txtCategory.clear();
-              controller.isIncome.value = false;
-            },
-            child: const Text(
-              'OK',
-              style: TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.w500),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showAddDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text(
-          'Add details',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-        ),
-        content: Form(
-          key: formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              buildTextFormField(
-                label: 'Amount',
-                controller: controller.txtAmount,
-              ),
-              const SizedBox(height: 10),
-              buildTextFormField(
-                label: 'Category',
-                controller: controller.txtCategory,
-              ),
-              Obx(
-                    () => SwitchListTile(
-                  activeTrackColor: Colors.green,
-                  title: const Text('Income', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
-                  value: controller.isIncome.value,
-                  onChanged: (value) {
-                    controller.setIsIncome(value);
-                  },
-                ),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Get.back();
-            },
-            child: const Text(
-              'Cancel',
-              style: TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.w500),
-            ),
-          ),
-          TextButton(
-            onPressed: () {
-              bool response = formKey.currentState!.validate();
-              if (response) {
-                controller.initRecord(
-                  double.parse(controller.txtAmount.text),
-                  controller.isIncome.value ? 1 : 0,
-                  controller.txtCategory.text,
-                );
-              }
-              Get.back();
-              controller.txtAmount.clear();
-              controller.txtCategory.clear();
-              controller.isIncome.value = false;
-            },
-            child: const Text(
-              'OK',
-              style: TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.w500),
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -273,7 +427,7 @@ class HomePage extends StatelessWidget {
       controller: controller,
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(color: Colors.grey, fontSize: 16, fontWeight: FontWeight.w400),
+        labelStyle: const TextStyle(color: Colors.grey),
         border: const OutlineInputBorder(
           borderSide: BorderSide(
             color: Colors.grey,
@@ -286,10 +440,6 @@ class HomePage extends StatelessWidget {
           ),
         ),
       ),
-      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w400),
     );
   }
 }
-
-var controller = Get.put(DataBaseController());
-GlobalKey<FormState> formKey = GlobalKey();
